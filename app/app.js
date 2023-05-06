@@ -3,7 +3,7 @@ const baseurl = "/";
 const express = require('express');
 const puppeteer = require('puppeteer')
 const {writeFile} = require('fs-extra');
-const port = 3800;
+const port = 3000;
 const app =express();
 const cors=require("cors");
 app.use(cors({
@@ -29,7 +29,16 @@ app.get("/", (req, res)=>{
 })
 
 app.post("/url2img", async (req, res)=>{
-    const browser = await puppeteer.launch();
+   
+    const browser = await puppeteer.launch({
+        headless: "new",
+        args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-setuid-sandbox"],
+        defaultViewport: { width: 1920, height: 1080 },
+        env: {
+          TZ: "ASIA/KOLKATA",
+          NODE_OPTIONS: "--max-old-space-size=4096",
+        },
+      });
             const page = await browser.newPage();
             await page.setViewport({
                 width: req.body.width,

@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+  url2img:
+    platform: linux/amd64
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: url2img
+    ports:
+      - 3000:3000
+    environment:
+      - PORT=3000
+    restart: always
+
