@@ -7,7 +7,9 @@ services:
       dockerfile: Dockerfile
     image: url2img
     ports:
-      - 3000:3000
+      - 3800:3000
+    volumes:
+      - /home/devteam/FileVault/url2pdf:/app/uploads
     environment:
       - PORT=3000
     restart: always
