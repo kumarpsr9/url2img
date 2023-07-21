@@ -86,7 +86,6 @@ app.post("/url2pdf", async (req, res)=>{
 
     // const url = req.body.url+"?papercode="+req.body.papercode+"&prgmId="+req.body.prgmId; 
     // Assuming URL is passed as a query parameter
-
     try {
         var randval = Math.floor(1000 + Math.random() * 9000);
         var outputFolder = __dirname + '/uploads'+req.body.path || __dirname + '/uploads';
@@ -95,14 +94,14 @@ app.post("/url2pdf", async (req, res)=>{
             fs.mkdir(path.join(outputFolder),
                 { recursive: true }, (err) => {
                     if (err) {
-                        console.log(err)
+                        // console.log(err)
                         var finalres = { "msg": "Dirctory not Created" }
                         res.status(500).send(finalres)
                     } else {
-                        console.log('success')
+                        // console.log('success')
                         return true
                     }
-                    
+                   
                 });
         }
         var format = req.body.format || "A4";
@@ -110,23 +109,43 @@ app.post("/url2pdf", async (req, res)=>{
         var headerLeft = req.body.headerLeft || "";
         var headerRight = req.body.headerRight || "";
         var footerLeft = req.body.footerLeft || "";
-        var pageNum = req.body.pageNumbers;
-        if(pageNum==undefined){
-            pageNum = true
-        } else {
-            pageNum = pageNum;
-        } 
+        var pageNum = req.body.pageNumbers !== undefined ? req.body.pageNumbers : true;
+        var landscape = req.body.landscape !== undefined ? req.body.landscape : false;
+        var margin = req.body.margin
+        if(margin==undefined){
+            var margin = {
+                "top": 10,
+                "right": 10,
+                "bottom": 10,
+                "left": 10
+            }
+        }
         if(headerLeft=="" && headerRight==""){
             var headerTemplate = ""
+        } if(headerLeft=="" && headerRight!=""){
+            var headerTemplate = `<div style="font-size: 10px; text-align: center; padding-bottom:10px; margin-left:20px;  margin-right:20px; width: 100%; border-bottom:1px solid #000">
+            <span style="float:right;">${headerRight}</span>
+        </div>`
+        }if(headerLeft!="" && headerRight==""){
+            var headerTemplate = `<div style="font-size: 10px; text-align: center; padding-bottom:10px; margin-left:20px;  margin-right:20px; width: 100%; border-bottom:1px solid #000">
+            <span style="float:left;">${headerLeft}</span>
+        </div>`
         } else {
             var headerTemplate = `<div style="font-size: 10px; text-align: center; padding-bottom:10px; margin-left:20px;  margin-right:20px; width: 100%; border-bottom:1px solid #000">
                 <span style="float:left;">${headerLeft}</span>
                 <span style="float:right;">${headerRight}</span>
             </div>`
         }
-        if((pageNum==false || pageNum==undefined)  && footerLeft==""){
+        if(pageNum==false  && footerLeft==""){
             var footerTemplate = ""
-        } else {
+        } else if(pageNum==false  && footerLeft!="") {
+            var footerTemplate = `<div style="font-size: 10px; text-align: center; padding-top:10px; margin-left:20px;  margin-right:20px; width: 100%; border-top:1px solid #000">
+            <span style="float:left;">${footerLeft}</span>`
+        } else if(pageNum==true  && footerLeft=="") {
+            var footerTemplate = `<div style="font-size: 10px; text-align: center; padding-top:10px; margin-left:20px;  margin-right:20px; width: 100%; border-top:1px solid #000">
+            <span style="float:right;"><span class="pageNumber"></span> / <span class="totalPages"></span></span>
+        </div>`
+        } else {    
             var footerTemplate = `<div style="font-size: 10px; text-align: center; padding-top:10px; margin-left:20px;  margin-right:20px; width: 100%; border-top:1px solid #000">
             <span style="float:left;">${footerLeft}</span>
             <span style="float:right;"><span class="pageNumber"></span> / <span class="totalPages"></span></span>
@@ -146,15 +165,11 @@ app.post("/url2pdf", async (req, res)=>{
                 timeout: 20000,
                 waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
             });
-            // await page.addStyleTag({ content: 'h4 { background-color: #999; }' });   
-        const pdfBuffer = await page.pdf({ 
+            // await page.addStyleTag({ content: 'h4 { background-color: #999; }' });  
+        const pdfBuffer = await page.pdf({
             format,
-            // margin: {
-            //     top: '10px',
-            //     right: '10px',
-            //     bottom: '10px',
-            //     left: '10px'
-            //   },
+            landscape,
+            margin,
             printBackground: true,
             displayHeaderFooter: true,
             headerTemplate,
@@ -167,7 +182,8 @@ app.post("/url2pdf", async (req, res)=>{
         const filePath = path.join(outputFolder, filewithmime);
 
         fs.writeFileSync(filePath, pdfBuffer);
-        res.send({msg:"success", filename : filewithmime, uploadPath});
+        var finalres = {msg:"success", filename : filewithmime, uploadPath}
+        res.status(200).json(finalres);
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Error generating PDF' });
