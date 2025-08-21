@@ -191,6 +191,116 @@ app.post("/url2pdf", async (req, res)=>{
 
 })
 
+app.post("/materialpdf", async (req, res)=>{
+
+    // const url = req.body.url+"?papercode="+req.body.papercode+"&prgmId="+req.body.prgmId; 
+    // Assuming URL is passed as a query parameter
+    // console.log(req.body);
+    try {
+        var randval = Math.floor(1000 + Math.random() * 9000);
+        var outputFolder = __dirname + '/uploads'+req.body.path || __dirname + '/uploads';
+        var uploadPath =  req.body.path || '/' ;
+        if (!fs.existsSync(outputFolder)) {
+            fs.mkdir(path.join(outputFolder),
+                { recursive: true }, (err) => {
+                    if (err) {
+                        // console.log(err)
+                        var finalres = { "msg": "Dirctory not Created" }
+                        res.status(500).send(finalres)
+                    } else {
+                        // console.log('success')
+                        return true
+                    }
+                    
+                });
+        }
+        var format = req.body.format || "A4";
+        var filename = req.body.filename || Date.now() + randval;
+        var headerLeft = req.body.headerLeft || "";
+        var headerRight = req.body.headerRight || "";
+        var footerLeft = req.body.footerLeft || "";
+        var footerRight = req.body.footerRight || "";
+        var pageNum = req.body.pageNumbers !== undefined ? req.body.pageNumbers : true; 
+        var landscape = req.body.landscape !== undefined ? req.body.landscape : false;
+        var margin = req.body.margin
+        if(margin==undefined){
+            var margin = {
+                "top": 10,
+                "right": 10,
+                "bottom": 10,
+                "left": 10
+            }
+        } 
+        if(headerLeft=="" && headerRight==""){
+            var headerTemplate = `<div style="font-size: 10px; text-align: center; margin-top:20px; margin-left:50px;  margin-right:50px; width: 100%;border-top:2px solid #000">&nbsp;</div>`
+        } 
+        if(headerLeft=="" && headerRight!=""){
+            var headerTemplate = `<div style="font-size: 10px; text-align: center; padding-bottom:10px; margin-left:20px;  margin-right:20px; width: 100%; border-bottom:1px solid #000">
+            <span style="float:right;">${headerRight}</span>
+        </div>`
+        }
+        if(headerLeft!="" && headerRight==""){
+            var headerTemplate = `<div style="font-size: 10px; text-align: center; padding-bottom:10px; margin-left:20px;  margin-right:20px; width: 100%; border-bottom:1px solid #000">
+            <span style="float:left;">${headerLeft}</span>
+        </div>`
+        }
+        if(pageNum==false  && footerLeft==""){
+            var footerTemplate = ""
+        } else if(pageNum==false  && footerLeft!="") {
+            var footerTemplate = `<div style="font-size: 10px; text-align: center; padding-top:10px; margin-left:20px;  margin-right:20px; width: 100%;">
+            <span style="float:left;">${footerLeft}</span>`
+        } else if(pageNum==true  && footerLeft=="") {
+            var footerTemplate = `<div style="font-size: 10px; text-align: center; padding-top:10px; margin-left:20px;  margin-right:20px; width: 100%;>
+            <span style="float:right;"><span class="pageNumber"></span> / <span class="totalPages"></span></span>
+        </div>`
+        } else {    
+            var footerTemplate = `<div style="font-size: 10px; text-align: center; padding-top:10px; padding-bottom:20px; margin-left:50px;  margin-right:50px; width: 100%;border-top:2px solid #000">
+            <span style="float:left;">${footerLeft}</span>
+            <span style="text-align:center"><span class="pageNumber"></span> / <span class="totalPages"></span></span>
+            <span style="float:right;">${footerRight}</span>
+        </div>`
+        }
+        const browser = await puppeteer.launch({
+            headless: "new",
+            args: ["--disable-dev-shm-usage", "--no-sandbox", '--enable-logging', "--disable-setuid-sandbox"],
+            // defaultViewport: { width: 1920, height: 1080 },
+            // env: {
+            //   TZ: "ASIA/KOLKATA",
+            //   NODE_OPTIONS: "--max-old-space-size=4096",
+            // },
+          });
+        const page = await browser.newPage();
+        await page.goto(req.body.url, {
+                waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
+            });
+            // await page.addStyleTag({ content: 'h4 { background-color: #999; }' });   
+        const pdfBuffer = await page.pdf({ 
+            format,
+            landscape,
+            margin,
+            printBackground: false,
+            displayHeaderFooter: true,
+            headerTemplate,
+            footerTemplate,
+            omitBackground:true,
+            timeout: 100000
+         });
+        await browser.close();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        const filewithmime = filename+'.pdf'; // Generate a unique filename
+        const filePath = path.join(outputFolder, filewithmime);
+
+        fs.writeFileSync(filePath, pdfBuffer);
+        var finalres = {msg:"success", filename : filewithmime, uploadPath}
+        res.status(200).json(finalres);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Error generating PDF' });
+    }
+
+})
+
 app.post('/downloadpdf', async (req, res, next) => {
     
     try {

@@ -1,0 +1,15 @@
+EndPoint : http://10.70.9.183:3000/materialpdf
+Payload : {
+    "url": "https://touchstone.aditya.ac.in/junior/v23/reportcard/material.html?subject=PHYSICS",
+    "path": "/Meterial",
+    "format": "A4",
+    "filename": "PHYSICS",
+    "footerLeft": "ADITYA JUNIOR COLLEGES",
+    "footerRight": "SR ACE & ARIJE(ADV)_CHAPTER WISE ASSIGNMENT",
+    "margin": {
+        "top": 80,
+        "right": 50,
+        "bottom": 70,
+        "left": 50
+    }
+}
